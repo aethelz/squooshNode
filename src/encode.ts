@@ -56,13 +56,13 @@ export async function _encode(
           quality: Number(quality) || 75,
           lossless: Number(typeof lossless === 'string') || 0,
         })
-      : await encodePNG(quantizedImage);
+      : encodePNG(quantizedImage);
     console.timeEnd('ENCODING');
 
     console.time('POSTPROCESSING');
     result =
       !isWEBP && typeof fast !== 'string'
-        ? await compressPNG(rawEncodedImage, oxiDefaultOptions)
+        ? compressPNG(rawEncodedImage, oxiDefaultOptions)
         : rawEncodedImage;
   } catch (e) {
     throw e;

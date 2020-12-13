@@ -4,6 +4,7 @@ import { decodePNG } from './codecs/png/decoder';
 import type { ServerError } from './types/types';
 import type { ImageData } from './types/types';
 import type { ReaderTaskEither } from 'fp-ts/ReaderTaskEither';
+import { of } from 'fp-ts/Task';
 
 export const decode: ReaderTaskEither<
   ArrayBuffer,
@@ -11,9 +12,9 @@ export const decode: ReaderTaskEither<
   ImageData
 > = imageBuffer =>
   tryCatch(
-    () => decodePNG(imageBuffer),
+    of(decodePNG(new Uint8Array(imageBuffer))),
     e => ({
       status: 406,
-      reason: `Error ${e} when getting image data`,
+      reason: `Error when getting image data: ${e} `,
     }),
   );
