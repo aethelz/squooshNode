@@ -1,9 +1,19 @@
 import Koa from 'koa';
 import Router from 'koa-router';
-
 import logger from 'koa-logger';
-import { decoding } from './decoding';
-import { SupportedFormats } from './types/types';
+
+import type { ServerError } from './types/types';
+import type { EncodingSuccess } from './encode';
+
+import { fold, chain } from 'fp-ts/TaskEither';
+
+import { makeLazy } from './utils';
+import { checkOutputFormat } from './taskUtils';
+import { fetchImage } from './fetchImage';
+import { decode } from './decode';
+import { quantize } from './quantize';
+import { encode } from './encode';
+import { pipe } from 'fp-ts/lib/pipeable';
 
 const app = new Koa();
 const router = new Router();
@@ -13,27 +23,24 @@ router.get('/:format/:url(.+)', async (ctx, next) => {
 
   const { url, format } = ctx.params;
 
-  const res = await decoding({
-    url,
-    format: format as SupportedFormats,
-    dither,
-    colors,
-    fast,
-    quality: q,
-    lossless,
-  });
-
-  if ('status' in res) {
-    const { status, reason } = res;
+  const res = pipe(
+    checkOutputFormat(format),
+    chain(() => fetchImage(url)),
+    chain(({ imageBuffer }) => decode(imageBuffer)),
+    chain(quantize({ colors, dither })),
+    chain(encode({ format, fast, quality: q, lossless })),
+  );
+  const onError = async ({ status, reason }: ServerError) => {
     ctx.response.status = status;
     ctx.response.body = reason;
-  } else {
-    const { imageBuffer, mimeType } = res;
-
+  };
+  const onSuccess = async ({ imageBuffer, mimeType }: EncodingSuccess) => {
     ctx.body = Buffer.from(imageBuffer);
     ctx.type = mimeType;
-    await next();
-  }
+  };
+
+  await pipe(res, fold(makeLazy(onError), makeLazy(onSuccess)))();
+  await next();
 });
 
 // Middlewares

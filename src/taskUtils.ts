@@ -1,3 +1,7 @@
+import type { TaskEither } from 'fp-ts/TaskEither';
+import { left, right } from 'fp-ts/Either';
+import type { ServerError } from './types/types';
+
 export function getSizeDifference(
   newSize: number,
   originalSize: number
@@ -21,3 +25,17 @@ export function makeLazy<T, U>(
 ): (arg: T) => () => Promise<U> {
   return arg => () => fn(arg);
 }
+
+export const checkOutputFormat: (format: string) => TaskEither<
+  ServerError,
+  true
+> = format => async() => {
+
+  if (!['png', 'webp'].includes(format)) {
+    return left({
+      status: 400,
+      reason: 'Unsupported output format',
+    });
+  }
+  return right(true);
+ };
