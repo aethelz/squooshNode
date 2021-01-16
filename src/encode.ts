@@ -53,6 +53,7 @@ export async function _encode(
     rawEncodedImage = isWEBP
       ? await encodeWEPB(quantizedImage, {
           ...webpDefaultOptions,
+          method: 5,
           quality: Number(quality) || 75,
           lossless: Number(typeof lossless === 'string') || 0,
         })
