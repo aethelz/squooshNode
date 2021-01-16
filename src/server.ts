@@ -7,6 +7,7 @@ import type { ServerError } from './types/types';
 import type { EncodingSuccess } from './encode';
 
 import { fold, chain } from 'fp-ts/TaskEither';
+import { isLeft } from 'fp-ts/Either';
 
 import { makeLazy, sha1 } from './utils';
 import { checkOutputFormat } from './taskUtils';
@@ -72,8 +73,8 @@ app.use(
         return;
       }
 
-      const m = await getEtag(strippedURL[0])();
-      if (m._tag === 'Left') {
+      const etagEither = await getEtag(strippedURL[0])();
+      if (isLeft(etagEither)) {
         console.error('Failed to retrieve image headers');
         return;
       }
@@ -87,7 +88,7 @@ app.use(
         return;
       }
       const storedETag = cachedResponse.etag.split(':')[0];
-      const remoteETag = m.right.etag;
+      const remoteETag = etagEither.right.etag;
       console.log({ storedETag, remoteETag });
 
       if (storedETag !== remoteETag) {
