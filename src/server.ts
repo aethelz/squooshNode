@@ -66,6 +66,17 @@ app.use(
   koaCash({
     get: async key => {
       console.log('GETTER ENTRY');
+
+      const cachedResponse = cacheStore[key];
+      if (!cachedResponse) {
+        console.error('No cached result found');
+        return;
+      }
+      if (!cachedResponse.etag) {
+        console.error('Missing etag in stored entry');
+        return;
+      }
+
       const regex = /http.*/g;
       const strippedURL = key.match(regex);
       if (strippedURL === null) {
@@ -76,15 +87,6 @@ app.use(
       const etagEither = await getEtag(strippedURL[0])();
       if (isLeft(etagEither)) {
         console.error('Failed to retrieve image headers');
-        return;
-      }
-      const cachedResponse = cacheStore[key];
-      if (!cachedResponse) {
-        console.error('No cached result found');
-        return;
-      }
-      if (!cachedResponse.etag) {
-        console.error('Missing etag in stored entry');
         return;
       }
       const storedETag = cachedResponse.etag.split(':')[0];
